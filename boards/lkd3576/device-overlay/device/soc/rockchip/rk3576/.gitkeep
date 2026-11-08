@@ -1,0 +1,1 @@
+# 占位：若 fork 的 device/soc/rockchip 未含 rk3576，则把 soc 子配置放这里

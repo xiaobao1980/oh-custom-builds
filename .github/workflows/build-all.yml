@@ -1,0 +1,36 @@
+name: Build OH Images (all boards)
+
+on:
+  workflow_dispatch:
+  # 可选：每周日 18:00 UTC 自动跑全量（按需保留/注释）
+  schedule:
+    - cron: '0 18 * * 0'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false          # 一块失败不影响其它板
+      matrix:
+        board: [lkd3576, lkd3568, cm3588-nas]
+    runs-on: [self-hosted, oh-builder]
+    timeout-minutes: 360
+    env:
+      TREE: /home/xiaobao/share/OpenHarmony-v6.1/rk3576_oh_6.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync OpenHarmony tree (incremental)
+        run: bash common/sync.sh "$TREE"
+
+      - name: Apply board overlay + patches
+        run: bash common/apply-overlay.sh "${{ matrix.board }}" "$TREE"
+
+      - name: Build
+        run: bash common/build.sh "${{ matrix.board }}" "$TREE"
+
+      - name: Upload images (artifact, 90d)
+        uses: actions/upload-artifact@v4
+        with:
+          name: oh-${{ matrix.board }}
+          path: ${{ env.TREE }}/out/${{ matrix.board }}/images/**
+          retention-days: 90

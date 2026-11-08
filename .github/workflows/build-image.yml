@@ -1,0 +1,64 @@
+name: Build OH Image (single board)
+
+on:
+  workflow_dispatch:
+    inputs:
+      board:
+        description: 'Board to build'
+        required: true
+        default: 'lkd3576'
+        type: choice
+        options:
+          - lkd3576
+          - lkd3568
+          - cm3588-nas
+      kernel:
+        description: 'Kernel branch (informational; real choice is in build.env)'
+        required: false
+        default: 'linux-6.6'
+        type: choice
+        options:
+          - linux-6.1
+          - linux-6.6
+      tag:
+        description: 'Release tag (empty = no GitHub Release; just artifact)'
+        required: false
+        default: ''
+
+run-name: 'build ${{ inputs.board }} @ ${{ inputs.kernel }}'
+
+jobs:
+  build:
+    # 必须装在构建机上的 self-hosted runner，标签 oh-builder。
+    # runner 主动外连 GitHub 取任务，内网/NAT 后也能用，无需开入站端口。
+    runs-on: [self-hosted, oh-builder]
+    timeout-minutes: 360
+    env:
+      TREE: /home/xiaobao/share/OpenHarmony-v6.1/rk3576_oh_6.1
+    steps:
+      - name: Checkout this builder repo
+        uses: actions/checkout@v4
+
+      - name: Sync OpenHarmony tree (incremental, reuse local reference)
+        run: bash common/sync.sh "$TREE"
+
+      - name: Apply board overlay + patches
+        run: bash common/apply-overlay.sh "${{ inputs.board }}" "$TREE"
+
+      - name: Build
+        run: bash common/build.sh "${{ inputs.board }}" "$TREE"
+
+      - name: Upload images (artifact, 90d retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: oh-${{ inputs.board }}
+          path: ${{ env.TREE }}/out/${{ inputs.board }}/images/**
+          retention-days: 90
+
+      # ⚠️ GitHub Releases 单文件硬上限 2G。镜像超限请先 xz 压缩或走本地 HTTP 源。
+      - name: Publish release (optional)
+        if: ${{ inputs.tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          files: ${{ env.TREE }}/out/${{ inputs.board }}/images/**

@@ -1,0 +1,10 @@
+# 构建产物与本地状态，不进仓库
+.overlay-backup/
+out/
+sync.out
+sync.log
+*.img
+*.img.xz
+*.tar.gz
+*.tar
+.DS_Store

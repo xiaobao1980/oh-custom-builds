@@ -1,0 +1,38 @@
+<!--
+  可选：把板级 overlay 做成独立 git 仓，通过 local_manifest 引入树内，
+  这样即使 repo sync 也不会冲掉板级改动 —— 比"直接 cp overlay"更抗造。
+
+  用法：复制本文件为 <TREE>/.repo/local_manifests/oh-boards.xml，
+  修改 remote fetch 为你自己的仓库地址，repo sync 即会自动拉取这些工程。
+
+  注意：path 必须落在 fork 仓【之外】的命名空间（device/board/<vendor>/...、
+  vendor/<vendor>/...），否则会与上游 repo 工程冲突。
+-->
+<manifest>
+  <remote name="oh-boards"
+          fetch="https://github.com/xiaobao1980/oh-custom-builds" />
+
+  <!-- LKD3576 (Neardi, RK3576) -->
+  <project path="device/board/neardi/lkd3576"
+           name="device-board-neardi-lkd3576"
+           remote="oh-boards" revision="main" />
+  <project path="vendor/neardi/lkd3576"
+           name="vendor-neardi-lkd3576"
+           remote="oh-boards" revision="main" />
+
+  <!-- LKD3568 (Neardi, RK3568) -->
+  <project path="device/board/neardi/lkd3568"
+           name="device-board-neardi-lkd3568"
+           remote="oh-boards" revision="main" />
+  <project path="vendor/neardi/lkd3568"
+           name="vendor-neardi-lkd3568"
+           remote="oh-boards" revision="main" />
+
+  <!-- CM3588-NAS (FriendlyElec, RK3588) -->
+  <project path="device/board/friendlyelec/cm3588-nas"
+           name="device-board-friendlyelec-cm3588-nas"
+           remote="oh-boards" revision="main" />
+  <project path="vendor/friendlyelec/cm3588-nas"
+           name="vendor-friendlyelec-cm3588-nas"
+           remote="oh-boards" revision="main" />
+</manifest>
