@@ -6,6 +6,10 @@ OpenHarmony 多板卡镜像**在线/自动化构建**骨架。结构平移自
 但执行环境改为 **GitHub Actions self-hosted runner**，重活留在构建机那棵**持久化**的
 OpenHarmony 源码树（公共 runner 装不下 97G+ 的树，也跨境拉不动 gitcode 的 rk-develop fork）。
 
+> 📌 **仓库已上线**：https://github.com/xiaobao1980/oh-custom-builds （`main`，public）
+> 📋 **远程仓库配置 + Runner 安装逐步清单**：见 [`SETUP.md`](./SETUP.md)
+> ⚠️ 构建机当前有一路手动 `repo sync` 在跑，**sync 出 `SYNC_DONE` 前勿从 GitHub 触发构建**（见 SETUP.md 冲突警告）。
+
 ## 当前进度
 
 - LKD3576：`repo sync` 进行中（rk-develop fork，整条 Rockchip 6.1 适配）。
@@ -45,8 +49,8 @@ oh-custom-builds/
 
 1. **构建机**：已备 97G 标准树 + `openharmony_prebuilts` + 持久化的 rk3576_oh_6.1 树。
 2. **磁盘**：多板 + ccache 建议 ≥700G 余量（当前 350G/已用 209G，偏紧，需扩容）。
-3. **self-hosted runner**：在构建机装 GitHub Actions runner，打标签 `oh-builder`，
-   URL/令牌从仓库 Settings → Actions → Runners 获取。runner 主动外连，内网可用。
+3. **self-hosted runner**：在构建机装 GitHub Actions runner，打标签 `oh-builder`。
+   详细步骤（含 GitHub 限速用 ghproxy 镜像、systemd 自启、令牌获取）见 [`SETUP.md`](./SETUP.md)。
 
 ## 手动跑（不走 GitHub）
 
