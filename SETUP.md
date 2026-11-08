@@ -71,34 +71,26 @@ cd ~/actions-runner
 ```
 注册成功后，runner 出现在 `仓库 → Settings → Actions → Runners` 列表（此时状态为 **offline**，正常）。
 
-### B.5 装成 systemd 服务（重启自动上线，以 xiaobao 身份跑，保留 ~/bin 环境）
+### B.5 装成 systemd 服务（推荐用 GitHub 自带 `svc.sh`，自动按真实单元名注册）
+> 本仓库构建机**已按此步骤预装完成**（2026-11-08），真实单元名为
+> `actions.runner.xiaobao1980-oh-custom-builds.openharmony3.service`，注册名 `openharmony3`、
+> 标签含 `oh-builder`。以下为完整可复现步骤（重装或换机时照做）：
+
 ```bash
-sudo tee /etc/systemd/system/github-runner-oh.service >/dev/null <<'EOF'
-[Unit]
-Description=GitHub Actions Runner (oh-custom-builds)
-After=network.target
-
-[Service]
-User=xiaobao
-WorkingDirectory=/home/xiaobao/actions-runner
-ExecStart=/home/xiaobao/actions-runner/run.sh
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
+cd ~/actions-runner
+echo "<sudo密码>" | sudo -S ./svc.sh install    # 创建以 xiaobao 身份运行的服务（含 ~/bin 环境）
 sudo systemctl daemon-reload
-sudo systemctl enable github-runner-oh.service   # 开机自启（务必，因为要扩容重启）
-# 暂不 start —— 见下方 ⚠️ 冲突警告
+# 单元名形如 actions.runner.<owner>-<repo>.<hostname>.service
 ```
 
-### B.6 启动并验证
+### B.6 启动并验证（**当前处于 disabled + inactive，不要现在 start**，见 ⚠️）
 ```bash
-sudo systemctl start github-runner-oh.service
-systemctl status github-runner-oh.service
-# 在 GitHub 网页或本机确认 online：
+UNIT=actions.runner.xiaobao1980-oh-custom-builds.openharmony3.service
+# 等 SYNC_DONE / 扩容重启后，再执行：
+sudo systemctl enable  "$UNIT"   # 开机自启
+sudo systemctl start   "$UNIT"   # 立即上线
+systemctl status "$UNIT"
+# 在 GitHub 确认 online：
 gh api repos/xiaobao1980/oh-custom-builds/actions/runners --jq '.runners[]|{name,status}'
 ```
 
@@ -113,6 +105,12 @@ runner 一旦 online，若此时从 GitHub 触发 `build-image.yml`，workflow �
 **规则**：
 - 在手动 sync 出 `SYNC_DONE` 之前（或扩容重启之前），**不要**从 GitHub 触发构建。
 - sync 完成后（或扩容重启后 runner 自启），再触发构建即可，脚本会自动增量 sync（已完成项跳过）。
+
+### 当前已落地的防冲突状态（2026-11-08）
+- runner 已注册（GitHub 列表 `openharmony3` / `offline` / 标签含 `oh-builder`）。
+- systemd 服务已 `svc.sh install` 但**已 `disable`**（开机不自动拉起）、**`inactive`**（没在跑）。
+  → 因此即使扩容重启，runner 也不会自启，彻底排除"开机即撞 sync"。
+- 启用时机：**`SYNC_DONE` 之后**再 `sudo systemctl enable + start`（命令见 B.6）。
 
 ---
 
@@ -135,7 +133,7 @@ runner 一旦 online，若此时从 GitHub 触发 `build-image.yml`，workflow �
 ## E. 故障排查
 | 现象 | 处理 |
 |---|---|
-| runner 一直 offline | `systemctl status github-runner-oh`；看 `~/actions-runner/_diag` 日志；确认出网到 GitHub |
+| runner 一直 offline | `UNIT=actions.runner.xiaobao1980-oh-custom-builds.openharmony3.service; systemctl status $UNIT`；看 `~/actions-runner/_diag` 日志；确认出网到 GitHub |
 | 构建报 `python: command not found` | 确认 `~/bin/python` 软链存在；`common/*.sh` 已 `export PATH=$HOME/bin:$PATH` |
 | 构建报 `repo: command not found` | 同 PATH 问题；或重新 `ln -sf $(which repo) ~/bin/repo` |
 | 下载 runner 极慢 | 直连被限，换 `ghproxy.net` 前缀（见 B.2） |
